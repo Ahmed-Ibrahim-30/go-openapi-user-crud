@@ -26,7 +26,7 @@ func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// POST /users
+// POST /CreateUser
 func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
 	var user api.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {

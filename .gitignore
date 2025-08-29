@@ -1,4 +1,5 @@
 *.mod
 *.sum
 *.xml
-*iml
+*.iml
+*.idea
