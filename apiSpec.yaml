@@ -1,0 +1,91 @@
+openapi: 3.0.0
+info:
+  title: Go User API
+  version: 1.0.1
+
+
+servers:
+  - url: http://localhost:8080
+
+
+paths:
+  /users/Update/{id}:
+    put:
+      summary: Update User
+      parameters:
+        - name: id
+          required: true
+          schema:
+            type: integer
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        200:
+          description: "User Updated"
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/GetAllUsers:
+    get:
+      summary: Fetch all Users
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/CreateUser:
+    post:
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User created
+
+  /users/Delete/{id}:
+    delete:
+      summary: Delete User
+      parameters:
+        - name : id
+          schema:
+            type: integer
+          in: path
+          required: true
+      responses:
+        '200':
+          description: "Deleted Successfully"
+
+components:
+  schemas:
+    User:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
