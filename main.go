@@ -2,10 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	_ "strconv"
 
 	"github.com/go-chi/cors"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 
 	"GoApis/api"
 
@@ -13,17 +18,81 @@ import (
 )
 
 type MyServer struct {
-	users map[int]api.User
+	db *gorm.DB
 }
 
-// GET /users/{id}
-func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	user, ok := s.users[id]
-	if !ok {
-		http.Error(w, "User not found", http.StatusNotFound)
+func (s *MyServer) DBConnect() {
+	//env File
+	//Create in yaml File
+	//auth in JWT
+	dsn := "postgres://ahmed:secret123@localhost:5432/mydb?sslmode=disable"
+	s.db, _ = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		//Turn Off Gorm Self Naming
+		NamingStrategy: schema.NamingStrategy{SingularTable: true},
+	})
+	err1 := s.db.AutoMigrate(&api.User{})
+	if err1 != nil {
 		return
 	}
-	json.NewEncoder(w).Encode(user)
+}
+
+func (s *MyServer) insertDB(user api.User) {
+	//s.DBConnect()
+	res := s.db.Create(&user)
+	if res.Error != nil {
+		fmt.Println("error:", res.Error)
+		return
+	}
+	fmt.Println("User Added Successfully", user)
+}
+func (s *MyServer) updateDB(user api.User) {
+	//s.DBConnect()
+
+	s.db.Model(&api.User{}).Where("id = ?", user.Id).Updates(&user)
+}
+func (s *MyServer) deleteDB(user *api.User) {
+	//s.DBConnect()
+
+	s.db.Delete(user)
+}
+func (s *MyServer) printDB() {
+	//s.DBConnect()
+	var users []api.User
+	result := s.db.Find(&users)
+	if result.Error != nil {
+		log.Fatal(result.Error)
+	}
+
+	fmt.Println("Users Size in DB = ", len(users))
+	for _, user := range users {
+		fmt.Println("ID: ", user.Id, "Name: ", user.Name)
+	}
+}
+func (s *MyServer) getAllUsersDB() []api.User {
+	//s.DBConnect()
+	var users []api.User
+	result := s.db.Find(&users)
+	if result.Error != nil {
+		log.Fatal(result.Error)
+	}
+
+	fmt.Println("Users Size in DB = ", len(users))
+	for _, user := range users {
+		fmt.Println("ID: ", user.Id, "Name: ", user.Name)
+	}
+	return users
+}
+
+func (s *MyServer) GetUserByID(id int) (*api.User, error) {
+	s.DBConnect()
+
+	var user api.User
+	result := s.db.First(&user, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
 }
 
 // POST /CreateUser
@@ -33,20 +102,34 @@ func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	s.users[user.Id] = user
+
+	s.insertDB(user)
+
+	newUser, _ := s.GetUserByID(user.Id)
+
 	//w.WriteHeader(http.StatusCreated)
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(user)
+	err := json.NewEncoder(w).Encode(newUser)
 	if err != nil {
 		return
 	}
 }
 
+// GET /users/{id}
+func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
+	user, ok := s.GetUserByID(id)
+	if ok != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(user)
+}
+
 // PUT /users/{id}
 func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id int) {
-	userUpdated, ok := s.users[id]
+	userDB, ok := s.GetUserByID(id)
 
-	if !ok {
+	if ok != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -56,7 +139,8 @@ func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id i
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	s.users[userUpdated.Id] = user
+	user.Id = userDB.Id
+	s.updateDB(user)
 	//w.WriteHeader(http.StatusCreated)
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(user)
@@ -67,12 +151,12 @@ func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id i
 
 // Delete /users/{id}
 func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, id int) {
-	var user api.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	user, ok := s.GetUserByID(id)
+	if ok != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	delete(s.users, user.Id)
+	s.deleteDB(user)
 	//w.WriteHeader(http.StatusCreated)
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(user)
@@ -83,7 +167,9 @@ func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, i
 
 // Get / users/GetAllUsers
 func (s *MyServer) GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	for _, user := range s.users {
+	var users []api.User = s.getAllUsersDB()
+
+	for _, user := range users {
 		err := json.NewEncoder(w).Encode(user)
 		if err != nil {
 			return
@@ -96,8 +182,10 @@ func (s *MyServer) GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	//DataBase
 	r := chi.NewRouter()
-	server := &MyServer{users: make(map[int]api.User)}
+	server := &MyServer{}
+	server.DBConnect()
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"}, // allow all origins
