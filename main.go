@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	_ "strconv"
 
 	"github.com/go-chi/cors"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -25,7 +27,21 @@ func (s *MyServer) DBConnect() {
 	//env File
 	//Create in yaml File
 	//auth in JWT
-	dsn := "postgres://ahmed:secret123@localhost:5432/mydb?sslmode=disable"
+
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	name := os.Getenv("DB_USER")
+	pass := os.Getenv("DB_PASSWORD")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", name, pass, host, port, dbName)
+	fmt.Println("DSN = " + dsn)
 	s.db, _ = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		//Turn Off Gorm Self Naming
 		NamingStrategy: schema.NamingStrategy{SingularTable: true},
