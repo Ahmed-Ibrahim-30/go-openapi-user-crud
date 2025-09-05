@@ -20,3 +20,6 @@ convert swagger to openApi --> swagger2openapi -o docs/swagger_v3.yaml docs/swag
 oapi-codegen -generate types -o api/types.gen.go -package api apiSpec.yaml
 oapi-codegen -generate chi-server -o api/server.gen.go -package api apiSpec.yaml
 
+hash Password : go get golang.org/x/crypto/bcrypt
+
+fix eny error in go.sum : go mod tidy

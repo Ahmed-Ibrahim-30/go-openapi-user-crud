@@ -13,9 +13,6 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Create New User
-	// (POST /users/CreateUser)
-	PostUsersCreateUser(w http.ResponseWriter, r *http.Request)
 	// Delete New User
 	// (DELETE /users/Delete/{id})
 	DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, id int)
@@ -25,6 +22,9 @@ type ServerInterface interface {
 	// Update New User
 	// (PUT /users/Update/{id})
 	PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id int)
+	// SignUp New User
+	// (POST /users/signUp)
+	PostUsersSignUp(w http.ResponseWriter, r *http.Request)
 	// Get specific User By ID
 	// (GET /users/{id})
 	GetUsersId(w http.ResponseWriter, r *http.Request, id int)
@@ -33,12 +33,6 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
-
-// Create New User
-// (POST /users/CreateUser)
-func (_ Unimplemented) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
 
 // Delete New User
 // (DELETE /users/Delete/{id})
@@ -58,6 +52,12 @@ func (_ Unimplemented) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SignUp New User
+// (POST /users/signUp)
+func (_ Unimplemented) PostUsersSignUp(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get specific User By ID
 // (GET /users/{id})
 func (_ Unimplemented) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
@@ -72,20 +72,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
-
-// PostUsersCreateUser operation middleware
-func (siw *ServerInterfaceWrapper) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostUsersCreateUser(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
 
 // DeleteUsersDeleteId operation middleware
 func (siw *ServerInterfaceWrapper) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +128,20 @@ func (siw *ServerInterfaceWrapper) PutUsersUpdateId(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutUsersUpdateId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostUsersSignUp operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersSignUp(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersSignUp(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -290,9 +290,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/users/CreateUser", wrapper.PostUsersCreateUser)
-	})
-	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/users/Delete/{id}", wrapper.DeleteUsersDeleteId)
 	})
 	r.Group(func(r chi.Router) {
@@ -300,6 +297,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/users/Update/{id}", wrapper.PutUsersUpdateId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/users/signUp", wrapper.PostUsersSignUp)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/users/{id}", wrapper.GetUsersId)

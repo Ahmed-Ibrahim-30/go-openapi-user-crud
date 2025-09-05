@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	_ "strconv"
+	"strings"
 
 	"GoApis/api"
 
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -19,6 +21,8 @@ import (
 	_ "github.com/swaggo/http-swagger"
 
 	"github.com/go-chi/chi/v5"
+
+	_ "golang.org/x/crypto/bcrypt"
 )
 
 // @title My API
@@ -28,8 +32,13 @@ import (
 // @schemes http
 
 type User struct {
-	ID   int    `json:"ID"`
-	Name string `json:"name"`
+	ID       int    `json:"ID" gorm:"primaryKey"`
+	Name     string `json:"name"`
+	Password string `json:"password"` // don’t expose in JSON
+	Address  string `json:"address"`
+	Age      int    `json:"age"`
+	Email    string `json:"email" gorm:"unique"`
+	Role     string `json:"role"` //User or Admin
 }
 
 type MyServer struct {
@@ -66,6 +75,14 @@ func (s *MyServer) DBConnect() {
 
 func (s *MyServer) insertDB(user User) {
 	//s.DBConnect()
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		fmt.Println("Failed to hash password", http.StatusInternalServerError)
+		return
+	}
+	user.Password = string(hashedPassword) // store hashed password
+
 	res := s.db.Create(&user)
 	if res.Error != nil {
 		fmt.Println("error:", res.Error)
@@ -123,20 +140,45 @@ func (s *MyServer) GetUserByID(ID int) (*User, error) {
 	return &user, nil
 }
 
-// PostUsersCreateUser godoc
-// @Summary Create New User
+type UserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Age      int    `json:"age"`
+	Address  string `json:"address"`
+}
+
+// PostUsersSignUp godoc
+// @Summary SignUp New User
 // @Accept json
 // @Tags users
 // @Produce json
-// @Param user body User true "Create User"
+// @Param user body UserInput true "Create User"
 // @Success 200 {object} User
 // @Failure 400 {string} string "Invalid input"
-// @Router /users/CreateUser [post]
-func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
-	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+// @Router /users/signUp [post]
+func (s *MyServer) PostUsersSignUp(w http.ResponseWriter, r *http.Request) {
+
+	var input UserInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
+	}
+
+	var user User
+	user.Name = input.Name
+	user.Email = input.Email
+	user.Password = input.Password
+	user.Age = input.Age
+	user.Address = input.Address
+
+	allUsers := s.getAllUsersDB()
+
+	user.ID = len(allUsers) + 1
+	if !strings.Contains(user.Email, "admin") {
+		user.Role = "User"
+	} else {
+		user.Role = "Admin"
 	}
 
 	s.insertDB(user)

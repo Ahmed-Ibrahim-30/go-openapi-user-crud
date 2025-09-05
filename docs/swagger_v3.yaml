@@ -30,31 +30,6 @@ paths:
       summary: Get specific User By ID
       tags:
         - users
-  /users/CreateUser:
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/main.User"
-        description: Create User
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/main.User"
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                type: string
-      summary: Create New User
-      tags:
-        - users
   "/users/Delete/{id}":
     delete:
       parameters:
@@ -130,6 +105,31 @@ paths:
               schema:
                 type: string
       summary: Update New User
+  /users/signUp:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/main.UserInput"
+        description: Create User
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/main.User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: string
+      summary: SignUp New User
+      tags:
+        - users
 servers:
   - url: http://localhost:8080
 components:
@@ -138,6 +138,31 @@ components:
       properties:
         ID:
           type: integer
+        address:
+          type: string
+        age:
+          type: integer
+        email:
+          type: string
         name:
+          type: string
+        password:
+          description: don’t expose in JSON
+          type: string
+        role:
+          description: User or Admin
+          type: string
+      type: object
+    main.UserInput:
+      properties:
+        address:
+          type: string
+        age:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        password:
           type: string
       type: object

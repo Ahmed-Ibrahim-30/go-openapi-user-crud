@@ -4,7 +4,32 @@ definitions:
     properties:
       ID:
         type: integer
+      address:
+        type: string
+      age:
+        type: integer
+      email:
+        type: string
       name:
+        type: string
+      password:
+        description: don’t expose in JSON
+        type: string
+      role:
+        description: User or Admin
+        type: string
+    type: object
+  main.UserInput:
+    properties:
+      address:
+        type: string
+      age:
+        type: integer
+      email:
+        type: string
+      name:
+        type: string
+      password:
         type: string
     type: object
 host: localhost:8080
@@ -34,31 +59,6 @@ paths:
           schema:
             type: string
       summary: Get specific User By ID
-      tags:
-      - users
-  /users/CreateUser:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Create User
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/main.User'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/main.User'
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Create New User
       tags:
       - users
   /users/Delete/{id}:
@@ -129,6 +129,31 @@ paths:
           schema:
             type: string
       summary: Update New User
+  /users/signUp:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.User'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: SignUp New User
+      tags:
+      - users
 schemes:
 - http
 swagger: "2.0"
