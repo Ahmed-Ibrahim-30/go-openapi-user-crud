@@ -1,0 +1,134 @@
+basePath: /
+definitions:
+  main.User:
+    properties:
+      ID:
+        type: integer
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  title: My API
+  version: "1.0"
+paths:
+  /users/{id}:
+    get:
+      description: Get a single user by its ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.User'
+        "404":
+          description: User not found
+          schema:
+            type: string
+      summary: Get specific User By ID
+      tags:
+      - users
+  /users/CreateUser:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/main.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.User'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Create New User
+      tags:
+      - users
+  /users/Delete/{id}:
+    delete:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User Deleted
+          schema:
+            type: string
+        "404":
+          description: User not found
+          schema:
+            type: string
+      summary: Delete New User
+      tags:
+      - users
+  /users/GetAllUsers:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.User'
+            type: array
+      summary: Get all Users
+      tags:
+      - users
+  /users/Update/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Update User
+        in: body
+        name: User
+        required: true
+        schema:
+          $ref: '#/definitions/main.User'
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.User'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+        "404":
+          description: User not found
+          schema:
+            type: string
+      summary: Update New User
+schemes:
+- http
+swagger: "2.0"

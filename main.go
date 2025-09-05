@@ -8,23 +8,35 @@ import (
 	"os"
 	_ "strconv"
 
+	"GoApis/api"
+
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 
-	"GoApis/api"
+	_ "github.com/swaggo/http-swagger"
 
 	"github.com/go-chi/chi/v5"
 )
+
+// @title My API
+// @version 1.0
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+
+type User struct {
+	ID   int    `json:"ID"`
+	Name string `json:"name"`
+}
 
 type MyServer struct {
 	db *gorm.DB
 }
 
 func (s *MyServer) DBConnect() {
-	//env File
 	//Create in yaml File
 	//auth in JWT
 
@@ -46,13 +58,13 @@ func (s *MyServer) DBConnect() {
 		//Turn Off Gorm Self Naming
 		NamingStrategy: schema.NamingStrategy{SingularTable: true},
 	})
-	err1 := s.db.AutoMigrate(&api.User{})
+	err1 := s.db.AutoMigrate(&User{})
 	if err1 != nil {
 		return
 	}
 }
 
-func (s *MyServer) insertDB(user api.User) {
+func (s *MyServer) insertDB(user User) {
 	//s.DBConnect()
 	res := s.db.Create(&user)
 	if res.Error != nil {
@@ -61,19 +73,19 @@ func (s *MyServer) insertDB(user api.User) {
 	}
 	fmt.Println("User Added Successfully", user)
 }
-func (s *MyServer) updateDB(user api.User) {
+func (s *MyServer) updateDB(user User) {
 	//s.DBConnect()
 
-	s.db.Model(&api.User{}).Where("id = ?", user.Id).Updates(&user)
+	s.db.Model(&User{}).Where("ID = ?", user.ID).Updates(&user)
 }
-func (s *MyServer) deleteDB(user *api.User) {
+func (s *MyServer) deleteDB(user *User) {
 	//s.DBConnect()
 
 	s.db.Delete(user)
 }
 func (s *MyServer) printDB() {
 	//s.DBConnect()
-	var users []api.User
+	var users []User
 	result := s.db.Find(&users)
 	if result.Error != nil {
 		log.Fatal(result.Error)
@@ -81,12 +93,12 @@ func (s *MyServer) printDB() {
 
 	fmt.Println("Users Size in DB = ", len(users))
 	for _, user := range users {
-		fmt.Println("ID: ", user.Id, "Name: ", user.Name)
+		fmt.Println("ID: ", user.ID, "Name: ", user.Name)
 	}
 }
-func (s *MyServer) getAllUsersDB() []api.User {
+func (s *MyServer) getAllUsersDB() []User {
 	//s.DBConnect()
-	var users []api.User
+	var users []User
 	result := s.db.Find(&users)
 	if result.Error != nil {
 		log.Fatal(result.Error)
@@ -94,16 +106,16 @@ func (s *MyServer) getAllUsersDB() []api.User {
 
 	fmt.Println("Users Size in DB = ", len(users))
 	for _, user := range users {
-		fmt.Println("ID: ", user.Id, "Name: ", user.Name)
+		fmt.Println("ID: ", user.ID, "Name: ", user.Name)
 	}
 	return users
 }
 
-func (s *MyServer) GetUserByID(id int) (*api.User, error) {
+func (s *MyServer) GetUserByID(ID int) (*User, error) {
 	s.DBConnect()
 
-	var user api.User
-	result := s.db.First(&user, id)
+	var user User
+	result := s.db.First(&user, ID)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -111,9 +123,17 @@ func (s *MyServer) GetUserByID(id int) (*api.User, error) {
 	return &user, nil
 }
 
-// POST /CreateUser
+// PostUsersCreateUser godoc
+// @Summary Create New User
+// @Accept json
+// @Tags users
+// @Produce json
+// @Param user body User true "Create User"
+// @Success 200 {object} User
+// @Failure 400 {string} string "Invalid input"
+// @Router /users/CreateUser [post]
 func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
-	var user api.User
+	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -121,7 +141,7 @@ func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	s.insertDB(user)
 
-	newUser, _ := s.GetUserByID(user.Id)
+	newUser, _ := s.GetUserByID(user.ID)
 
 	//w.WriteHeader(http.StatusCreated)
 	w.WriteHeader(http.StatusOK)
@@ -131,9 +151,17 @@ func (s *MyServer) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GET /users/{id}
-func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	user, ok := s.GetUserByID(id)
+// GetUsersId godoc
+// @Summary Get specific User By ID
+// @Description Get a single user by its ID
+// @Tags users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} User
+// @Failure 404 {string} string "User not found"
+// @Router /users/{id} [get]
+func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, ID int) {
+	user, ok := s.GetUserByID(ID)
 	if ok != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -141,21 +169,30 @@ func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// PUT /users/{id}
-func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id int) {
-	userDB, ok := s.GetUserByID(id)
+// PutUsersUpdateId godoc
+// @Summary Update New User
+// @Accept json
+// @Produce json
+// @Param User body User true "Update User"
+// @Param id path int true "User ID"
+// @Success 200 {object} User
+// @Failure 400 {string} string "Invalid input"
+// @Failure 404 {string} string "User not found"
+// @Router /users/Update/{id} [put]
+func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, ID int) {
+	userDB, ok := s.GetUserByID(ID)
 
 	if ok != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 
-	var user api.User
+	var user User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	user.Id = userDB.Id
+	user.ID = userDB.ID
 	s.updateDB(user)
 	//w.WriteHeader(http.StatusCreated)
 	w.WriteHeader(http.StatusOK)
@@ -165,9 +202,16 @@ func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id i
 	}
 }
 
-// Delete /users/{id}
-func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, id int) {
-	user, ok := s.GetUserByID(id)
+// DeleteUsersDeleteId godoc
+// @Summary Delete New User
+// @Tags users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {string} string "User Deleted"
+// @Failure 404 {string} string "User not found"
+// @Router /users/Delete/{id} [delete]
+func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, ID int) {
+	user, ok := s.GetUserByID(ID)
 	if ok != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -181,9 +225,14 @@ func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
-// Get / users/GetAllUsers
+// GetUsersGetAllUsers godoc
+// @Summary Get all Users
+// @Produce json
+// @Tags users
+// @Success 200 {array} User
+// @Router /users/GetAllUsers [get]
 func (s *MyServer) GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	var users []api.User = s.getAllUsersDB()
+	var users []User = s.getAllUsersDB()
 
 	for _, user := range users {
 		err := json.NewEncoder(w).Encode(user)
@@ -212,7 +261,6 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by browsers
 	}))
 
-	// Register generated handlers
 	api.HandlerFromMux(server, r)
 
 	http.ListenAndServe(":8080", r)

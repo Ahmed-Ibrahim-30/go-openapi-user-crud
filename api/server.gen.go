@@ -11,33 +11,21 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
-// User defines model for User.
-type User struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-// PostUsersCreateUserJSONRequestBody defines body for PostUsersCreateUser for application/json ContentType.
-type PostUsersCreateUserJSONRequestBody = User
-
-// PutUsersUpdateIdJSONRequestBody defines body for PutUsersUpdateId for application/json ContentType.
-type PutUsersUpdateIdJSONRequestBody = User
-
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Create a user
+	// Create New User
 	// (POST /users/CreateUser)
 	PostUsersCreateUser(w http.ResponseWriter, r *http.Request)
-	// Delete User
+	// Delete New User
 	// (DELETE /users/Delete/{id})
 	DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, id int)
-	// Fetch all Users
+	// Get all Users
 	// (GET /users/GetAllUsers)
 	GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request)
-	// Update User
+	// Update New User
 	// (PUT /users/Update/{id})
 	PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id int)
-	// Get user by ID
+	// Get specific User By ID
 	// (GET /users/{id})
 	GetUsersId(w http.ResponseWriter, r *http.Request, id int)
 }
@@ -46,31 +34,31 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// Create a user
+// Create New User
 // (POST /users/CreateUser)
 func (_ Unimplemented) PostUsersCreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Delete User
+// Delete New User
 // (DELETE /users/Delete/{id})
 func (_ Unimplemented) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Fetch all Users
+// Get all Users
 // (GET /users/GetAllUsers)
 func (_ Unimplemented) GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Update User
+// Update New User
 // (PUT /users/Update/{id})
 func (_ Unimplemented) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get user by ID
+// Get specific User By ID
 // (GET /users/{id})
 func (_ Unimplemented) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)

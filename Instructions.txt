@@ -1,0 +1,22 @@
+1- to auto generate .yaml file
+
+First you must write this above handlers
+
+// PostUsersCreateUser godoc
+// @Summary Create New User
+// @Accept json
+// @Produce json
+// @Param User body User true "Create User"
+// @Success 200 {object} User
+// @Router /users/CreateUser [post]
+
+2- write in terminal
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init
+
+
+convert swagger to openApi --> swagger2openapi -o docs/swagger_v3.yaml docs/swagger.yaml
+
+oapi-codegen -generate types -o api/types.gen.go -package api apiSpec.yaml
+oapi-codegen -generate chi-server -o api/server.gen.go -package api apiSpec.yaml
+
