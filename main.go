@@ -23,6 +23,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	_ "golang.org/x/crypto/bcrypt"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // @title My API
@@ -30,6 +32,9 @@ import (
 // @host localhost:8080
 // @BasePath /
 // @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 type User struct {
 	ID       int    `json:"ID" gorm:"primaryKey"`
@@ -147,6 +152,86 @@ type UserInput struct {
 	Age      int    `json:"age"`
 	Address  string `json:"address"`
 }
+type UserLogin struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func ValidateJWT(r *http.Request, requiredRole string) (*jwt.MapClaims, error) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		return nil, fmt.Errorf("missing or invalid Authorization header")
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	jwtKey := []byte(os.Getenv("JWT_KEY"))
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return jwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	role, ok := claims["role"].(string)
+	if !ok || role != requiredRole {
+		return nil, fmt.Errorf("insufficient permissions")
+	}
+
+	return &claims, nil
+}
+
+// PostUsersLogin godoc
+// @Summary Login User
+// @Accept json
+// @Tags users
+// @Produce json
+// @Param user body UserLogin true "Login"
+// @Success 200 {object} User
+// @Failure 400 {string} string "Invalid input"
+// @Router /users/login [post]
+func (s *MyServer) PostUsersLogin(w http.ResponseWriter, r *http.Request) {
+	var jwtKey = []byte(os.Getenv("JWT_KEY"))
+
+	fmt.Println("JWT_KEY = ", jwtKey)
+	var input UserLogin
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	//check is user Exist
+	var user User
+	if err := s.db.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)) != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"role":    user.Role,
+	})
+	fmt.Println(token)
+	tokenString, _ := token.SignedString(jwtKey)
+	fmt.Println(tokenString)
+
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+
+}
 
 // PostUsersSignUp godoc
 // @Summary SignUp New User
@@ -203,6 +288,13 @@ func (s *MyServer) PostUsersSignUp(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {string} string "User not found"
 // @Router /users/{id} [get]
 func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, ID int) {
+	_, ok := ValidateJWT(r, "Admin")
+
+	if ok != nil {
+		http.Error(w, ok.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	user, ok := s.GetUserByID(ID)
 	if ok != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -222,6 +314,14 @@ func (s *MyServer) GetUsersId(w http.ResponseWriter, r *http.Request, ID int) {
 // @Failure 404 {string} string "User not found"
 // @Router /users/Update/{id} [put]
 func (s *MyServer) PutUsersUpdateId(w http.ResponseWriter, r *http.Request, ID int) {
+
+	_, ok := ValidateJWT(r, "User")
+
+	if ok != nil {
+		http.Error(w, ok.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	userDB, ok := s.GetUserByID(ID)
 
 	if ok != nil {
@@ -274,6 +374,13 @@ func (s *MyServer) DeleteUsersDeleteId(w http.ResponseWriter, r *http.Request, I
 // @Success 200 {array} User
 // @Router /users/GetAllUsers [get]
 func (s *MyServer) GetUsersGetAllUsers(w http.ResponseWriter, r *http.Request) {
+	_, ok := ValidateJWT(r, "Admin")
+
+	if ok != nil {
+		http.Error(w, ok.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	var users []User = s.getAllUsersDB()
 
 	for _, user := range users {

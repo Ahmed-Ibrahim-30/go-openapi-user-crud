@@ -23,3 +23,5 @@ oapi-codegen -generate chi-server -o api/server.gen.go -package api apiSpec.yaml
 hash Password : go get golang.org/x/crypto/bcrypt
 
 fix eny error in go.sum : go mod tidy
+
+install JWT : go get github.com/golang-jwt/jwt/v5
