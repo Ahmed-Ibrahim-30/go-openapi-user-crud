@@ -1,16 +1,47 @@
-This project is a Go REST API example that uses OpenAPI (Swagger) to define endpoints and oapi-codegen to generate type-safe server code.
-It demonstrates complete CRUD operations (Create, Read, Update, Delete) for managing users, with automatic validation and documentation support.
+# Go User API
 
-Key features:
+A RESTful API built with **Go**, **Chi Router**, **GORM**, and **PostgreSQL**.  
+This project demonstrates user management with **authentication**, **role-based authorization**, and **Swagger API documentation**.
 
-✅ API contract-first design using OpenAPI spec (openapi.yaml).
+---
 
-✅ Generated Go types and handlers with oapi-codegen.
+## 🚀 Features
 
-✅ RESTful endpoints (GET, POST, PUT, DELETE).
+- **User Management**
+    - Sign up new users (hashed password storage using `bcrypt`)
+    - User login with **JWT authentication**
+    - Update and delete user profiles
+    - Fetch single user or all users
 
-✅ CORS enabled for Swagger Editor / UI testing.
+- **Authentication & Authorization**
+    - **JWT-based authentication**
+    - Role-based access control (**Admin** / **User**)
+        - Admin: Can get all users, delete users, fetch user by ID
+        - User: Can update their own profile
 
-✅ Uses Chi router for routing.
+- **Database Integration**
+    - PostgreSQL database with **GORM ORM**
+    - Auto-migration for user schema
 
-✅ Easy integration with Swagger UI.
+- **API Documentation**
+    - Integrated with **Swagger (Swaggo)**
+    - Auto-generated `swagger.json` and `swagger.yaml`
+
+- **Environment Config**
+    - Secure config using `.env` (DB credentials, JWT secret, etc.)
+
+---
+
+## 📂 Project Structure
+
+```plaintext
+GoApis/
+ ├── api/                # Auto-generated server bindings
+ ├── docs/               # Swagger documentation files
+ ├── DB_Gorm.go          # Database setup and configuration
+ ├── main.go             # Application entry point
+ ├── apiSpec.yaml        # OpenAPI specification
+ ├── Instructions.txt    # Notes and instructions
+ ├── .env                # Environment variables
+ ├── .gitignore          # Git ignore rules
+ └── go.mod              # Go module dependencies
